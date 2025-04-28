@@ -1,8 +1,17 @@
 # db.py
 import sqlite3
 import os
+import sys
 
-DB_PATH = os.path.join(os.getcwd(), "quermesse.db")
+def resource_path(relative_path):
+    """Retorna o caminho correto para recursos, funcionando tanto em .py quanto em .exe"""
+    try:
+        base_path = sys._MEIPASS  # Usado quando empacotado no PyInstaller
+    except AttributeError:
+        base_path = os.path.abspath(".")  # Usado quando rodando direto no PyCharm
+    return os.path.join(base_path, relative_path)
+
+DB_PATH = resource_path("quermesse.db")
 
 def conectar():
     return sqlite3.connect(DB_PATH)
@@ -39,7 +48,6 @@ def criar_tabelas():
             adicional INTEGER DEFAULT 0,
             vendido INTEGER DEFAULT 0,
             estoque_atual INTEGER DEFAULT 0
-
         )
     """)
 
