@@ -1,12 +1,12 @@
 from PyQt6.QtWidgets import (
-    QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout,
-    QHBoxLayout, QListWidget, QMessageBox, QComboBox, QDialog, QTableWidget,
-    QTableWidgetItem
+    QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout,
+    QListWidget, QMessageBox, QComboBox, QDialog, QTableWidget, QTableWidgetItem,
+    QGridLayout, QSpacerItem, QSizePolicy
 )
 from PyQt6.QtCore import Qt
 from datetime import datetime
 from db import conectar
-from ficha import gerar_fichas_pdf
+from ficha import imprimir_fichas_thermal
 
 
 class TelaVendas(QWidget):
@@ -18,73 +18,94 @@ class TelaVendas(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setContentsMargins(40, 40, 40, 40)
-        layout.setSpacing(15)
+        layout_principal = QHBoxLayout()
+        layout_principal.setContentsMargins(20, 20, 20, 20)
+        layout_principal.setSpacing(20)
 
-        titulo = QLabel("Finalização de Venda")
+        # --- Lado Esquerdo (Produtos adicionados)
+        lado_esquerdo = QVBoxLayout()
+
+        self.lista_itens = QListWidget()
+        lado_esquerdo.addWidget(QLabel("Produtos Selecionados:"))
+        lado_esquerdo.addWidget(self.lista_itens)
+
+        self.label_total = QLabel("Total: R$ 0.00")
+        self.label_total.setStyleSheet("font-size: 18px; font-weight: bold; color: green;")
+        lado_esquerdo.addWidget(self.label_total)
+
+        btn_remover = QPushButton("Remover Item")
+        btn_remover.clicked.connect(self.remover_item)
+        btn_remover.setStyleSheet("background-color: red; color: white; font-weight: bold;")
+        lado_esquerdo.addWidget(btn_remover)
+
+        layout_principal.addLayout(lado_esquerdo, 2)
+
+        # --- Lado Direito (Operações de Venda)
+        lado_direito = QVBoxLayout()
+
+        titulo = QLabel("Finalizar Venda")
         titulo.setStyleSheet("font-size: 24px; font-weight: bold;")
-        layout.addWidget(titulo)
+        titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lado_direito.addWidget(titulo)
+
+        form_layout = QGridLayout()
 
         self.entry_codigo = QLineEdit()
         self.entry_codigo.setPlaceholderText("Código do Produto")
-        layout.addWidget(self.entry_codigo)
+        form_layout.addWidget(self.entry_codigo, 0, 0)
 
         btn_adicionar = QPushButton("Adicionar Produto")
         btn_adicionar.clicked.connect(self.adicionar_produto)
-        layout.addWidget(btn_adicionar)
-
-        self.lista_itens = QListWidget()
-        layout.addWidget(self.lista_itens)
-
-        btn_remover = QPushButton("Remover Item Selecionado")
-        btn_remover.clicked.connect(self.remover_item)
-        layout.addWidget(btn_remover)
-
-        self.label_total = QLabel("Total: R$ 0.00")
-        self.label_total.setStyleSheet("font-size: 16px; font-weight: bold;")
-        layout.addWidget(self.label_total)
+        form_layout.addWidget(btn_adicionar, 0, 1)
 
         self.forma_pagamento = QComboBox()
         self.forma_pagamento.addItems(["Dinheiro", "Pix", "Cartão de Crédito", "Cartão de Débito", "Fiado", "Cortesia"])
         self.forma_pagamento.currentTextChanged.connect(self.atualizar_campos_forma_pagamento)
-        layout.addWidget(self.forma_pagamento)
+        form_layout.addWidget(QLabel("Forma de Pagamento:"), 1, 0)
+        form_layout.addWidget(self.forma_pagamento, 1, 1)
 
         self.entry_recebido = QLineEdit()
         self.entry_recebido.setPlaceholderText("Valor Recebido (R$)")
-        layout.addWidget(self.entry_recebido)
+        form_layout.addWidget(self.entry_recebido, 2, 0, 1, 2)
 
         self.entry_nome_fiado = QLineEdit()
-        self.entry_nome_fiado.setPlaceholderText("Nome do cliente")
+        self.entry_nome_fiado.setPlaceholderText("Nome do Cliente (Fiado/Cortesia)")
         self.entry_nome_fiado.hide()
-        layout.addWidget(self.entry_nome_fiado)
+        form_layout.addWidget(self.entry_nome_fiado, 3, 0, 1, 2)
+
+        lado_direito.addLayout(form_layout)
 
         botoes = QHBoxLayout()
-
         btn_finalizar = QPushButton("Finalizar Venda")
         btn_finalizar.clicked.connect(self.finalizar_venda)
+        btn_finalizar.setStyleSheet("background-color: green; color: white; font-weight: bold;")
         botoes.addWidget(btn_finalizar)
 
-        btn_cancelar = QPushButton("Cancelar Venda Toda")
+        btn_cancelar = QPushButton("Cancelar Venda")
         btn_cancelar.clicked.connect(self.limpar_venda)
+        btn_cancelar.setStyleSheet("background-color: red; color: white; font-weight: bold;")
         botoes.addWidget(btn_cancelar)
 
-        layout.addLayout(botoes)
+        lado_direito.addLayout(botoes)
 
         btn_estoque = QPushButton("Visualizar Estoque")
         btn_estoque.clicked.connect(self.visualizar_estoque)
-        layout.addWidget(btn_estoque)
+        lado_direito.addWidget(btn_estoque)
 
         btn_estornar = QPushButton("Estornar Venda")
         btn_estornar.setStyleSheet("background-color: orange; color: black; font-weight: bold;")
         btn_estornar.clicked.connect(lambda: self.controller.trocar_tela("TelaEstornoVendas"))
-        layout.addWidget(btn_estornar)
+        lado_direito.addWidget(btn_estornar)
 
-        btn_voltar = QPushButton("Voltar")
+        btn_voltar = QPushButton("Voltar ao Menu")
         btn_voltar.clicked.connect(lambda: self.controller.trocar_tela("TelaLogin"))
-        layout.addWidget(btn_voltar)
+        lado_direito.addWidget(btn_voltar)
 
-        self.setLayout(layout)
+        lado_direito.addItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
+        layout_principal.addLayout(lado_direito, 3)
+
+        self.setLayout(layout_principal)
         self.atualizar_campos_forma_pagamento()
 
     def atualizar_campos_forma_pagamento(self):
@@ -101,7 +122,6 @@ class TelaVendas(QWidget):
         try:
             conn = conectar()
             cursor = conn.cursor()
-
             cursor.execute("SELECT descricao, valor_venda FROM produtos WHERE codigo = ?", (codigo,))
             produto = cursor.fetchone()
 
@@ -110,18 +130,12 @@ class TelaVendas(QWidget):
                 conn.close()
                 return
 
-            # Verifica estoque atual disponível
             cursor.execute("SELECT estoque_atual FROM estoque WHERE codigo_produto = ?", (codigo,))
             estoque = cursor.fetchone()
             conn.close()
 
-            if not estoque:
-                QMessageBox.warning(self, "Estoque Indisponível", "Este produto ainda não possui estoque registrado.")
-                return
-
-            disponivel = estoque[0]
-            if disponivel <= 0:
-                QMessageBox.warning(self, "Estoque Insuficiente", "Produto sem estoque disponível.")
+            if not estoque or estoque[0] <= 0:
+                QMessageBox.warning(self, "Erro", "Produto sem estoque disponível.")
                 return
 
             descricao, valor = produto
@@ -179,6 +193,7 @@ class TelaVendas(QWidget):
 
                 cursor.execute("SELECT id, estoque_atual, vendido FROM estoque WHERE codigo_produto = ?", (codigo,))
                 estoque = cursor.fetchone()
+
                 if estoque:
                     est_id, atual, vendido = estoque
                     novo_atual = atual - 1
@@ -192,10 +207,9 @@ class TelaVendas(QWidget):
                 msg += f"\nTroco: R$ {troco:.2f}"
             QMessageBox.information(self, "Sucesso", msg)
 
-            # Gerar fichas
             nomes_produtos = [item[1] for item in self.itens]
-            caminho = gerar_fichas_pdf(nomes_produtos)
-            QMessageBox.information(self, "Fichas", f"Fichas geradas com sucesso em:\n{caminho}")
+            texto_extra = "Cortesia" if forma == "Cortesia" else None
+            imprimir_fichas_thermal(nomes_produtos, texto_extra=texto_extra)
 
             self.limpar_venda()
 
@@ -228,6 +242,7 @@ class TelaVendas(QWidget):
                 table.setItem(i, 0, QTableWidgetItem(str(codigo)))
                 table.setItem(i, 1, QTableWidgetItem(nome))
                 table.setItem(i, 2, QTableWidgetItem(str(disponivel)))
+
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao carregar estoque:\n{e}")
             return
