@@ -14,42 +14,55 @@ def imprimir_fichas_thermal(lista_produtos, texto_extra=None):
         validade = datetime.now().strftime("%d/%m/%Y")
         total = len(lista_produtos)
 
+        largura_imagem = 576
+        altura_imagem = 800
+
         pdc = win32ui.CreateDC()
         pdc.CreatePrinterDC(printer_name)
 
         for idx, produto in enumerate(sorted(lista_produtos, key=lambda x: x.lower()), start=1):
-            # Cria imagem
-            img = Image.new("RGB", (576, 800), "white")
+            img = Image.new("RGB", (largura_imagem, altura_imagem), "white")
             draw = ImageDraw.Draw(img)
 
             font_paroquia = ImageFont.truetype(str(caminho_fontes / "LuckiestGuy-Regular.ttf"), 32)
             font_barraca = ImageFont.truetype(str(caminho_fontes / "LuckiestGuy-Regular.ttf"), 32)
-            font_festa = ImageFont.truetype(str(caminho_fontes / "PermanentMarker-Regular.ttf"), 28)
+            font_festa = ImageFont.truetype(str(caminho_fontes / "LuckiestGuy-Regular.ttf"), 26)
             font_produto = ImageFont.truetype(str(caminho_fontes / "DMSerifText-Regular.ttf"), 36)
-            font_info = ImageFont.truetype(str(caminho_fontes / "TitanOne-Regular.ttf"), 20)
+            font_info = ImageFont.truetype(str(caminho_fontes / "DMSerifText-Regular.ttf"), 18)
 
             y = 30
-            draw.text((50, y), "Paróquia Santa Teresinha", font=font_paroquia, fill="black")
+
+            def desenhar_texto_centralizado(texto, fonte, y_pos, cor="black"):
+                largura_texto = draw.textlength(texto, font=fonte)
+                x = (largura_imagem - largura_texto) / 2
+                draw.text((x, y_pos), texto, font=fonte, fill=cor)
+
+            desenhar_texto_centralizado("Paróquia Santa Teresinha", font_paroquia, y)
             y += 40
-            draw.text((50, y), "de Santanésia", font=font_barraca, fill="black")
+            desenhar_texto_centralizado("de Santanésia", font_barraca, y)
             y += 60
-            draw.text((50, y), "Cinema - Com N. Sra.de.Fátima", font=font_festa, fill="black")
+            desenhar_texto_centralizado("Cinema - Com N. Sra. de. Fátima", font_festa, y)
             y += 60
+
             produto_texto = produto
             if texto_extra:
                 produto_texto += f" ({texto_extra})"
-            draw.text((50, y), produto_texto, font=font_produto, fill="black")
+            desenhar_texto_centralizado(produto_texto, font_produto, y)
             y += 80
-            draw.text((50, y), f"Validade: {validade}", font=font_info, fill="black")
-            y += 30
-            draw.text((50, y), f"Ficha: {idx}/{total}", font=font_info, fill="black")
 
-            # Agora imprime a imagem diretamente
+            desenhar_texto_centralizado(f"{validade}", font_info, y)
+            y += 30
+            desenhar_texto_centralizado(f"{idx}/{total}", font_info, y)
+
+            bmp_path = Path(__file__).parent / "ficha_temp.bmp"
+            img.save(bmp_path)
+
+            # Impressão
             pdc.StartDoc(f"Ficha {idx}")
             pdc.StartPage()
 
             dib = ImageWin.Dib(img)
-            dib.draw(pdc.GetHandleOutput(), (0, 0, 576, 800))
+            dib.draw(pdc.GetHandleOutput(), (0, 0, largura_imagem, altura_imagem))
 
             pdc.EndPage()
             pdc.EndDoc()
