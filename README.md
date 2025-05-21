@@ -10,7 +10,7 @@ A aplicação foi construída com **Python (PyQt6)** e **SQLite**, com foco em s
 
 - 🛒 **Vendas com múltiplas formas de pagamento**  
 - 📦 **Controle de estoque em tempo real**  
-- 🧾 **Geração automática de fichas em PDF**  
+- 🧾 **Geração automática de fichas com impressão Térmica**  
 - 🔄 **Registro de estornos com atualização de estoque**  
 - 📊 **Relatórios detalhados por produto, valor e cliente**  
 - 👥 **Cadastro de usuários com controle de acesso (admin/comum)**  
